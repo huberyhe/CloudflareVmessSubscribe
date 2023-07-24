@@ -1,0 +1,7 @@
+curl_proxy = ""
+curl_proxy_ip = ""
+curl_proxy_port = 19820
+db_file = "config/db.sqlite"
+telegram_token = "123:abc"
+telegram_chat_id = 123
+tiny_url_token = "abc"

@@ -1,0 +1,14 @@
+{
+    "require": {
+        "telegram-bot/api": "^2.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "MyNamespace\\": "src/"
+        },
+        "files": [
+            "src/helpers/helpers.php",
+            "src/helpers/config.php"
+        ]
+    }
+}

@@ -1,0 +1,4 @@
+vendor
+CloudflareST/*
+config/config.ini
+config/db.sqlite
