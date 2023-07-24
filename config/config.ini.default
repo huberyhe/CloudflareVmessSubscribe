@@ -5,3 +5,6 @@ db_file = "config/db.sqlite"
 telegram_token = "123:abc"
 telegram_chat_id = 123
 tiny_url_token = "abc"
+ip_count = 10
+speed_limit = 3
+cloudflare_st_path = "CloudflareST/"
