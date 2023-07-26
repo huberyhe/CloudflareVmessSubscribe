@@ -1,6 +1,5 @@
 {
     "require": {
-        "telegram-bot/api": "^2.4"
     },
     "autoload": {
         "psr-4": {

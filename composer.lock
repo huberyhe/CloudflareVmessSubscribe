@@ -4,76 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "69eff29021834fb46e904f04efbfaa86",
-    "packages": [
-        {
-            "name": "telegram-bot/api",
-            "version": "v2.4.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/TelegramBot/Api.git",
-                "reference": "7bf57218c5b03df490a97e166b96d064291b9ab2"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/TelegramBot/Api/zipball/7bf57218c5b03df490a97e166b96d064291b9ab2",
-                "reference": "7bf57218c5b03df490a97e166b96d064291b9ab2",
-                "shasum": "",
-                "mirrors": [
-                    {
-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
-                        "preferred": true
-                    }
-                ]
-            },
-            "require": {
-                "ext-curl": "*",
-                "ext-json": "*",
-                "php": ">=5.5.0"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3.16",
-                "symfony/phpunit-bridge": "*",
-                "vimeo/psalm": "^5.9"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.4-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "TelegramBot\\Api\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Ilya Gusev",
-                    "email": "mail@igusev.ru",
-                    "homepage": "https://php-cat.com",
-                    "role": "Developer"
-                }
-            ],
-            "description": "PHP Wrapper for Telegram Bot API",
-            "homepage": "https://github.com/TelegramBot/Api",
-            "keywords": [
-                "bot",
-                "bot api",
-                "php",
-                "telegram"
-            ],
-            "support": {
-                "issues": "https://github.com/TelegramBot/Api/issues",
-                "source": "https://github.com/TelegramBot/Api/tree/v2.4.0"
-            },
-            "time": "2023-05-11T15:20:55+00:00"
-        }
-    ],
+    "content-hash": "8d070178755c320c69f93ee4800660ef",
+    "packages": [],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",

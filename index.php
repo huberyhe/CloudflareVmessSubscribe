@@ -14,10 +14,16 @@ function main(bool $to_check, bool $to_update)
 
     $db = new TransferHistory(APP_ROOT. $config["db_file"]);
     $obj = new BestIp($config['ip_count'] ?? IP_COUNT);
-    if ($config["curl_proxy"] === 'socks5') {
-        $obj->set_curl_socks5_proxy($config['curl_proxy_ip'], $config['curl_proxy_port']);
+    switch ($config['curl_proxy']) {
+        case 'socks5':
+            $obj->set_curl_socks5_proxy($config['curl_proxy_ip'], $config['curl_proxy_port'], true);
+            break;
+        case 'http':
+            $obj->set_curl_socks5_proxy($config['curl_proxy_ip'], $config['curl_proxy_port'], false);
+            break;
+        default:
+            break;
     }
-
     try {
         if ($to_check) {
             $obj->call_st(APP_ROOT . $config['cloudflare_st_path'], $config['speed_limit'] ?? 3);
@@ -48,7 +54,11 @@ function main(bool $to_check, bool $to_update)
             }
             $db->add_record($obj->get_transfer_url(), $obj->get_tiny_url(), $obj->get_transfer_delete_url());
     
-            $obj->update_tiny_url($config['tiny_url_token']);
+            $ok = $obj->update_tiny_url($config['tiny_url_token']);
+            if (!$ok) {
+                echo "修正失败，退出" . PHP_EOL;
+                return;
+            }
     
             $ok = $obj->send_message($config['telegram_token'], $config['telegram_chat_id']);
             echo $ok ? "发送成功" . PHP_EOL : "发送失败" . PHP_EOL;

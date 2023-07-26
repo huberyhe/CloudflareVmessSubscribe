@@ -8,7 +8,6 @@ class BestIp
 {
     private $use_proxy = false; // 是否使用代理
     private $proxy_opts = array(); // curl代理选项
-    private $proxy_string = ''; // bot代理
     private $ip_count = 10; // 优选ip的数量
     private $ip_result_file = ''; // 优选ip的结果文件
     private $vmess_result_file = ''; // vmess订阅文件
@@ -17,6 +16,8 @@ class BestIp
 
     const TINY_URL_BASE = "https://tinyurl.com/";
     const TINY_URL_ALIAS = "hubery-iJDPSpRViy";
+    const CURL_DNS = '223.5.5.5';
+    const CURL_VERBOSE = true;
 
     const TPL = '{
     "v": "2",
@@ -58,15 +59,18 @@ class BestIp
     } 
 
     // 设置curl代理
-    public function set_curl_socks5_proxy(string $host, int $port)
+    public function set_curl_socks5_proxy(string $host, int $port, bool $use_socks5)
     {
+        if (getenv('https_proxy')) {
+            echo 'proxy already set, ignore.'. PHP_EOL;
+            return;
+        }
         $this->use_proxy = true;
         $this->proxy_opts = array(
             CURLOPT_PROXY => $host,
             CURLOPT_PROXYPORT => $port,
-            CURLOPT_PROXYTYPE => CURLPROXY_SOCKS5,
+            CURLOPT_PROXYTYPE => $use_socks5 ? CURLPROXY_SOCKS5 : CURLPROXY_HTTP,
         );
-        $this->proxy_string = $host. ':'. $port;
     }
 
 
@@ -75,19 +79,39 @@ class BestIp
     {
         echo '>>> 发送消息：'. $this->transfer_url. PHP_EOL;
         $msg = sprintf("%s => %s", self::TINY_URL_BASE. self::TINY_URL_ALIAS, $this->transfer_url);
-        try {
-            $bot = new \TelegramBot\Api\BotApi($token);
-            if ($this->use_proxy) {
-                $bot->setProxy($this->proxy_string, true);
-            }
-            $m = $bot->sendMessage($chat_id, $msg);
-            if ($m instanceof \TelegramBot\Api\Types\Message) {
-                return true;
-            }
-            return true;
-        } catch (\Exception $e) {
-            return false;
+        $url = sprintf('https://api.telegram.org/bot%s/sendMessage?%s', $token, http_build_query(array(
+            'chat_id' => $chat_id,
+            'text' => $msg,
+        )));
+
+        
+        $opt_array = array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_DNS_LOCAL_IP4 => self::CURL_DNS,
+            CURLOPT_VERBOSE => self::CURL_VERBOSE,
+        );
+        if ($this->use_proxy) {
+            $opt_array += $this->proxy_opts;
         }
+        $opt_array['CURLOPT_RESOLVE'] = $this->get_url_dns($url);
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $opt_array);
+        $result = curl_exec($ch);
+        $err_code = curl_errno($ch);
+        $err_msg = curl_error($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($err_code === CURLE_OK && $http_code === 200) {
+            return true;
+        }
+
+        printf("errno: %d, err: %s, http code: %d, result: %s". PHP_EOL, $err_code, $err_msg, $http_code, $result);
+        return false;
     }
 
     // 从优选ip结果中读取ip
@@ -116,8 +140,10 @@ class BestIp
     public function transfer_file(): bool
     {
         echo '>>> 上传到transer.sh'. PHP_EOL;
-        $optArray = array(
-            CURLOPT_URL => 'https://transfer.sh/' . basename($this->vmess_result_file),
+
+        $url = 'https://transfer.sh/' . basename($this->vmess_result_file);
+        $opt_array = array(
+            CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER => true,
             CURLOPT_POST => true,
@@ -128,16 +154,22 @@ class BestIp
                 'Max-Downloads: 100',
                 'Max-Days: 7',
             ),
-            // CURLOPT_VERBOSE => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_DNS_LOCAL_IP4 => self::CURL_DNS,
+            CURLOPT_VERBOSE => self::CURL_VERBOSE,
         );
         if ($this->use_proxy) {
-            $optArray += $this->proxy_opts;
+            $opt_array += $this->proxy_opts;
         }
+        $opt_array['CURLOPT_RESOLVE'] = $this->get_url_dns($url);
+
         $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
+        curl_setopt_array($ch, $opt_array);
         $response = curl_exec($ch);
         $err_code = curl_errno($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err_msg = curl_error($ch);
         curl_close($ch);
 
         if ($err_code === CURLE_OK && $http_code === 200) {
@@ -165,6 +197,8 @@ class BestIp
 
             return true;
         }
+
+        printf("errno: %d, err: %s, http code: %d, result: %s". PHP_EOL, $err_code, $err_msg, $http_code, $response);
         return false;
     }
 
@@ -174,25 +208,34 @@ class BestIp
         if (empty($delete_url)) {
             return true;
         }
-        $optArray = array(
+        
+        $opt_array = array(
             CURLOPT_URL => $delete_url,
             CURLOPT_CUSTOMREQUEST => 'DELETE',
-            // CURLOPT_VERBOSE => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_DNS_LOCAL_IP4 => self::CURL_DNS,
+            CURLOPT_VERBOSE => self::CURL_VERBOSE,
         );
         if ($this->use_proxy) {
-            $optArray += $this->proxy_opts;
+            $opt_array += $this->proxy_opts;
         }
+        $opt_array['CURLOPT_RESOLVE'] = $this->get_url_dns($delete_url);
+
         $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
+        curl_setopt_array($ch, $opt_array);
         $result = curl_exec($ch);
         $err_code = curl_errno($ch);
+        $err_msg = curl_error($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($err_code === CURLE_OK && $http_code === 200) {
             return true;
         }
-        
+
+        printf("errno: %d, err: %s, http code: %d, result: %s". PHP_EOL, $err_code, $err_msg, $http_code, $result);
         return false;
     }
 
@@ -216,7 +259,7 @@ class BestIp
     {
         echo '>>> 生成vmess订阅文件'. PHP_EOL;
         if (!file_exists($this->ip_result_file)) {
-            throw new Exception("ip file not exist.");
+            throw new Exception("ip file not exist, check first.");
         }
         $ips = $this->get_ips($this->ip_result_file);
         if (!$ips) {
@@ -243,19 +286,49 @@ class BestIp
         }
     }
 
+    private function get_url_dns(string $url): string {
+        if (getenv('https_proxy')) {
+            echo 'proxy already set, ignore.'. PHP_EOL;
+            return '';
+        }
+
+        $url_info = parse_url($url);
+        if (!isset($url_info['port'])) {
+            switch ($url_info['scheme']) {
+                case 'https':
+                    $url_info['port'] = 443;
+                    break;
+                case 'http':
+                    $url_info['port'] = 80;
+                    break;
+                default:
+                    throw new Exception('url unsupport.');
+            }
+        }
+        $retry = 3;
+        while($retry--) {
+            $ip = gethostbyname($url_info['host']);
+            if ($ip !== $url_info['host']) {
+                return sprintf('%s:%d:%s', $url_info['host'], $url_info['port'], $ip);
+            }
+        }
+        throw new Exception('dns get failed.');
+    }
 
     // 修改短链接，需要先创建
-    public function update_tiny_url(string $token)
+    public function update_tiny_url(string $token): bool
     {
         echo '>>> 修正短链接'. PHP_EOL;
         // https://api.tinyurl.com/alias/tinyurl.com/hubery-vmess?api_token=1tHCY9mTHvXDJOhvgdzhDgDwbhp2llPfwrcVgyGXLjX1EldOgDq3rH5EXDRw
+        
         $json_data = json_encode(array(
             "url" => $this->transfer_url,
             "domain" => "tinyurl.com",
             "alias" => self::TINY_URL_ALIAS,
         ));
-        $optArray = array(
-            CURLOPT_URL => 'https://api.tinyurl.com/change?api_token=' . $token,
+        $url = 'https://api.tinyurl.com/change?api_token=' . $token;
+        $opt_array = array(
+            CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => 'PATCH',
             CURLOPT_POSTFIELDS => $json_data,
@@ -263,19 +336,30 @@ class BestIp
                 'Content-Type: application/json',
                 'Content-Length: ' . strlen($json_data)
             ),
-            // CURLOPT_VERBOSE => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_DNS_LOCAL_IP4 => self::CURL_DNS,
+            CURLOPT_VERBOSE => self::CURL_VERBOSE,
         );
         if ($this->use_proxy) {
-            $optArray += $this->proxy_opts;
+            $opt_array += $this->proxy_opts;
         }
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $result = curl_exec($ch);
-        $code = curl_errno($ch);
+        $opt_array['CURLOPT_RESOLVE'] = $this->get_url_dns($url);
 
-        if ($code  !== CURLE_OK) {
-            throw new Exception(curl_error($ch));
-        }
+        $ch = curl_init();
+        curl_setopt_array($ch, $opt_array);
+        $result = curl_exec($ch);
+        $err_code = curl_errno($ch);
+        $err_msg = curl_error($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($err_code === CURLE_OK && $http_code === 200) {
+            return true;
+        }
+
+        printf("errno: %d, err: %s, http code: %d, result: %s". PHP_EOL, $err_code, $err_msg, $http_code, $result);
+        return false;
     }
 }
