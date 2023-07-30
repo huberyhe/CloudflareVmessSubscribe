@@ -6,16 +6,19 @@ CURDIR=$(cd "$(dirname "$0")" && pwd)
 # 下载CloudflareST
 # https://github.com/XIU2/CloudflareSpeedTest/releases/download/v2.2.4/CloudflareST_linux_amd64.tar.gz
 if [[ ! -f ${CURDIR}/CloudflareST/CloudflareST ]]; then
-    url=https://github.com/XIU2/CloudflareSpeedTest/releases/download/v2.2.4/CloudflareST_linux_amd64.tar.gz
-    if ["$(uname)"=="Darwin"];then
-        url=https://github.com/XIU2/CloudflareSpeedTest/releases/download/v2.2.4/CloudflareST_darwin_amd64.tar.gz
-    fi
-
     mkdir -p ${CURDIR}/CloudflareST && cd ${CURDIR}/CloudflareST
 
-    wget -N https://ghproxy.com/${url} -q -O CloudflareST.tar.gz
-    tar -zxf CloudflareST.tar.gz && rm -f CloudflareST.tar.gz
-    chmod a+x CloudflareST
+    if [[ "$(uname)"=="Darwin" ]];then
+        url=https://github.com/XIU2/CloudflareSpeedTest/releases/download/v2.2.4/CloudflareST_darwin_amd64.zip
+        wget -N ${url} -q
+        unzip -oq CloudflareST_darwin_amd64.zip && rm -f CloudflareST_darwin_amd64.zip
+    else
+        url=https://github.com/XIU2/CloudflareSpeedTest/releases/download/v2.2.4/CloudflareST_linux_amd64.tar.gz
+        wget -N ${url} -q
+        tar -zxf CloudflareST_linux_amd64.tar.gz && rm -f CloudflareST_linux_amd64.tar.gz
+    fi
+
+    chmod a+x ./CloudflareST
 else
     cd ${CURDIR}/CloudflareST/
 
