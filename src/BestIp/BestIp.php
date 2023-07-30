@@ -70,6 +70,7 @@ class BestIp
             CURLOPT_PROXY => $host,
             CURLOPT_PROXYPORT => $port,
             CURLOPT_PROXYTYPE => $use_socks5 ? CURLPROXY_SOCKS5 : CURLPROXY_HTTP,
+            CURLOPT_HTTPPROXYTUNNEL => true,
         );
     }
 
