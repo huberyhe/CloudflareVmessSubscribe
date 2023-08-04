@@ -26,7 +26,7 @@ function main(bool $to_check, bool $to_update)
     }
     try {
         if ($to_check) {
-            $obj->call_st(APP_ROOT . $config['cloudflare_st_path'], $config['speed_limit'] ?? 3);
+            $obj->call_st(APP_ROOT . $config['cloudflare_st_path'], $config['speed_limit'] ?? 3, $to_update);
         }
 
         if ($to_update) {

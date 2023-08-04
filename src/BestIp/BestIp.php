@@ -46,10 +46,14 @@ class BestIp
     }
 
     // 优选ip
-    public function call_st(string $bin_dir, int $sl)
+    public function call_st(string $bin_dir, int $sl, bool $slient_mode)
     {
         echo '>>> 优选IP'. PHP_EOL;
-        $cmd = Sprintf('cd %s && ./CloudflareST -tl 300 -sl %d -dn %d -p %d -url https://sangfor.0x01.party/file -o %s', $bin_dir, $sl, $this->ip_count, $this->ip_count, $this->ip_result_file);
+        if ($slient_mode) {
+            $cmd = Sprintf('cd %s && ./CloudflareST -tl 300 -sl %d -dn %d -p %d -url https://sangfor.0x01.party/file -s -o %s', $bin_dir, $sl, $this->ip_count, $this->ip_count, $this->ip_result_file);
+        } else {
+            $cmd = Sprintf('cd %s && ./CloudflareST -tl 300 -sl %d -dn %d -p %d -url https://sangfor.0x01.party/file -o %s', $bin_dir, $sl, $this->ip_count, $this->ip_count, $this->ip_result_file);
+        }
         echo $cmd. PHP_EOL;
         system($cmd, $ret);
         if ($ret !== 0 || !file_exists($this->ip_result_file)) {
