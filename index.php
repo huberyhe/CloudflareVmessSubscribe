@@ -10,6 +10,7 @@ const IP_COUNT = 10;
 
 function main(bool $to_check, bool $to_update)
 {
+    echo '开始：'. date('Y/m/d H:i:s'). PHP_EOL;
     $config = read_config(CONFIG_PATH);
 
     $db = new TransferHistory(APP_ROOT. $config["db_file"]);
@@ -66,6 +67,8 @@ function main(bool $to_check, bool $to_update)
     } catch (\Exception $e) {
         printf("%s:%d 发生错误： %s", $e->getFile(), $e->getLine(), $e->getMessage());
     }
+
+    echo '结束：'. date('Y/m/d H:i:s'). PHP_EOL;
 }
 
 $opts = getopt("acuh");
