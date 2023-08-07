@@ -8,6 +8,8 @@ const APP_ROOT = __DIR__. DIRECTORY_SEPARATOR;
 const CONFIG_PATH = APP_ROOT. 'config/config.ini';
 const IP_COUNT = 10;
 
+date_default_timezone_set('Asia/Shanghai');
+
 function main(bool $to_check, bool $to_update)
 {
     echo '开始：'. date('Y/m/d H:i:s'). PHP_EOL;
