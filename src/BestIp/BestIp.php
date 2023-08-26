@@ -106,7 +106,7 @@ class BestIp
         if (!$ips) {
             throw new Exception("ip empty.");
         }
-        return join("\n", $ips);
+        return join("\n", array_slice($ips, 0, 10));
     }
 
     // 设置curl代理

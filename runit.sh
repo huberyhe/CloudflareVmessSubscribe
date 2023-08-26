@@ -31,7 +31,7 @@ cd $CURDIR
 composer update
 
 # 清除代理，优选ip
-php index.php -c
+php index.php --check
 
 # 设置代理，更新订阅
 php index.php --vmess
