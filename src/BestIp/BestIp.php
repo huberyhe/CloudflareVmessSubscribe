@@ -4,6 +4,8 @@ namespace MyNamespace\BestIp;
 
 use Exception;
 
+use MyNamespace\TransferHistory\TransferHistory;
+
 class BestIp
 {
     private $use_proxy = false; // 是否使用代理
@@ -14,6 +16,7 @@ class BestIp
     private $transfer_url = ''; // transfer短链接url
     private $transfer_delete_url = ''; // transfer删除url
 
+    const TRANSFER_URL_BASE = "https://transfer.sh/";
     const TINY_URL_BASE = "https://tinyurl.com/";
     const TINY_URL_ALIAS = "hubery-iJDPSpRViy";
     const CURL_DNS = '223.5.5.5';
@@ -59,8 +62,52 @@ class BestIp
         if ($ret !== 0 || !file_exists($this->ip_result_file)) {
             throw new Exception("run failed.");
         }
-
     } 
+
+    // 生成订阅url，得到通知消息
+    public function get_msg_vmess(string $his_db_file, string $tiny_url_token) : string
+    {
+        $db = new TransferHistory(APP_ROOT. $his_db_file);
+        $this->gen_vmess();
+
+        if (!$this->transfer_file($this->vmess_result_file)) {
+            throw new Exception("上传到transfer.sh失败");
+        }
+
+        // 删除旧的地址，写入新地址
+        $records = $db->get_all();
+        foreach ($records as $record) {
+            if (isset($record['id']) && $record['id'] !== '') {
+                if (!$this->delete_transfer_file($record['delete_url'])) {
+                    echo "删除失败". PHP_EOL;
+                    continue;
+                }
+                if (!$db->del_record($record['id'])) {
+                    echo "删除失败". PHP_EOL;
+                    continue;
+                }
+            }
+        }
+        $db->add_record($this->get_transfer_url(), $this->get_tiny_url(), $this->get_transfer_delete_url());
+
+        $ok = $this->update_tiny_url($tiny_url_token);
+        if (!$ok) {
+            throw new Exception("修正tinyurl失败");
+        }
+
+        
+        return sprintf("%s => %s", $this->get_tiny_url(), $this->get_transfer_url());
+    }
+
+    // 包含可用ip的通知消息
+    public function get_msg_ips() : string
+    {
+        $ips = $this->get_ips($this->ip_result_file);
+        if (!$ips) {
+            throw new Exception("ip empty.");
+        }
+        return join("\n", $ips);
+    }
 
     // 设置curl代理
     public function set_curl_socks5_proxy(string $host, int $port, bool $use_socks5)
@@ -80,10 +127,9 @@ class BestIp
 
 
     // 发送telegram通知消息
-    public function send_message(string $token, string $chat_id): bool
+    public function send_message(string $token, string $chat_id, string $msg): bool
     {
         echo '>>> 发送消息：'. $this->transfer_url. PHP_EOL;
-        $msg = sprintf("%s => %s", self::TINY_URL_BASE. self::TINY_URL_ALIAS, $this->transfer_url);
         $url = sprintf('https://api.telegram.org/bot%s/sendMessage?%s', $token, http_build_query(array(
             'chat_id' => $chat_id,
             'text' => $msg,
@@ -142,11 +188,11 @@ class BestIp
 
     // 上传vmess订阅文件
     // curl --upload-file ./vmess.txt https://transfer.sh/vmess.txt
-    public function transfer_file(): bool
+    public function transfer_file(string $file): bool
     {
         echo '>>> 上传到transer.sh'. PHP_EOL;
 
-        $url = 'https://transfer.sh/' . basename($this->vmess_result_file);
+        $url = self::TRANSFER_URL_BASE . basename($this->vmess_result_file);
         $opt_array = array(
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,

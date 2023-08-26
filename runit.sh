@@ -33,7 +33,10 @@ composer update
 # 清除代理，优选ip
 php index.php -c
 
-# 设置代理，上传订阅文件
-php index.php -u
+# 设置代理，更新订阅
+php index.php --vmess
+
+# 设置代理，发送优选ip列表
+php index.php --ips
 
 . clear_proxy.sh
