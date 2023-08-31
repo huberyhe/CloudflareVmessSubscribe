@@ -15,30 +15,13 @@ class BestIp
     private $vmess_result_file = ''; // vmess订阅文件
     private $transfer_url = ''; // transfer短链接url
     private $transfer_delete_url = ''; // transfer删除url
+    private $tiny_url = ''; // tinyurl上完整地址
 
     const SPEED_TEST_FILE = "https://sangfor.0x01.party/file";
     const TRANSFER_URL_BASE = "https://transfer.sh/";
     const TINY_URL_BASE = "https://tinyurl.com/";
-    const TINY_URL_ALIAS = "hubery-iJDPSpRViy";
-    const CURL_DNS = '223.5.5.5';
+    const CURL_DNS = '8.8.8.8';
     const CURL_VERBOSE = true;
-
-    const TPL = '{
-    "v": "2",
-    "ps": "vmess_1",
-    "add": "104.17.30.60",
-    "port": "443",
-    "id": "8fade6a2-c92b-4ec2-8faa-a73eee91e97c",
-    "aid": "0",
-    "scy": "auto",
-    "net": "ws",
-    "type": "none",
-    "host": "sangfor.0x01.party",
-    "path": "/ray",
-    "tls": "tls",
-    "sni": "",
-    "alpn": ""
-}';
 
     public function __construct(int $ip_count)
     {
@@ -66,14 +49,17 @@ class BestIp
     } 
 
     // 生成订阅url，得到通知消息
-    public function get_msg_vmess(string $his_db_file, string $tiny_url_token) : string
+    public function get_msg_vmess(array $tpl_arr, string $his_db_file, string $tiny_url_token, string $tiny_url_alias) : string
     {
         $db = new TransferHistory(APP_ROOT. $his_db_file);
-        $this->gen_vmess();
+        
+        $this->gen_vmess($tpl_arr);
 
         if (!$this->transfer_file($this->vmess_result_file)) {
             throw new Exception("上传到transfer.sh失败");
         }
+
+        $this->tiny_url = self::TINY_URL_BASE . $tiny_url_alias;
 
         // 删除旧的地址，写入新地址
         $records = $db->get_all();
@@ -89,15 +75,13 @@ class BestIp
                 }
             }
         }
-        $db->add_record($this->get_transfer_url(), $this->get_tiny_url(), $this->get_transfer_delete_url());
+        $db->add_record($this->transfer_url, $this->tiny_url, $this->transfer_delete_url);
 
-        $ok = $this->update_tiny_url($tiny_url_token);
-        if (!$ok) {
+        if (!$this->update_tiny_url($tiny_url_token, $tiny_url_alias)) {
             throw new Exception("修正tinyurl失败");
         }
-
         
-        return sprintf("%s => %s", $this->get_tiny_url(), $this->get_transfer_url());
+        return sprintf("%s => %s", self::TINY_URL_BASE. $tiny_url_alias, $this->transfer_url);
     }
 
     // 包含可用ip的通知消息
@@ -254,6 +238,7 @@ class BestIp
         return false;
     }
 
+    // 删除文件
     function delete_transfer_file($delete_url): bool
     {
         echo '>>> 删除transer.sh上的文件：'. $delete_url. PHP_EOL;
@@ -291,23 +276,8 @@ class BestIp
         return false;
     }
 
-    public function get_transfer_url(): string
-    {
-        return $this->transfer_url;
-    }
-
-    public function get_transfer_delete_url(): string
-    {
-        return $this->transfer_delete_url;
-    }
-
-    public function get_tiny_url(): string
-    {
-        return self::TINY_URL_BASE. self::TINY_URL_ALIAS;
-    }
-
     // 生成vmess订阅文件
-    public function gen_vmess()
+    public function gen_vmess(array $tpl_arr)
     {
         echo '>>> 生成vmess订阅文件'. PHP_EOL;
         if (!file_exists($this->ip_result_file)) {
@@ -323,7 +293,6 @@ class BestIp
         }
 
         $items = array();
-        $tpl_arr = json_decode(self::TPL, true);
         foreach ($ips as $k => $ip) {
             if ($k >= $this->ip_count) break;
 
@@ -338,6 +307,7 @@ class BestIp
         }
     }
 
+    // 查询dns
     private function get_url_dns(string $url): string {
         if (getenv('https_proxy')) {
             echo 'proxy already set, ignore.'. PHP_EOL;
@@ -368,7 +338,7 @@ class BestIp
     }
 
     // 修改短链接，需要先创建
-    public function update_tiny_url(string $token): bool
+    public function update_tiny_url(string $token, string $url_alias): bool
     {
         echo '>>> 修正短链接'. PHP_EOL;
         // https://api.tinyurl.com/alias/tinyurl.com/hubery-vmess?api_token=1tHCY9mTHvXDJOhvgdzhDgDwbhp2llPfwrcVgyGXLjX1EldOgDq3rH5EXDRw
@@ -376,7 +346,7 @@ class BestIp
         $json_data = json_encode(array(
             "url" => $this->transfer_url,
             "domain" => "tinyurl.com",
-            "alias" => self::TINY_URL_ALIAS,
+            "alias" => $url_alias,
         ));
         $url = 'https://api.tinyurl.com/change?api_token=' . $token;
         $opt_array = array(

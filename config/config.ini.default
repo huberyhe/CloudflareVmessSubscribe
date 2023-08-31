@@ -1,11 +1,12 @@
-curl_proxy = ""
+curl_proxy = "http"
 curl_proxy_ip = ""
-curl_proxy_port = 19820
+curl_proxy_port = 1085
 db_file = "config/db.sqlite"
 vmess_tpl = ""
 telegram_token = "123:abc"
-telegram_chat_id = 123
+telegram_chat_id = 123456
 tiny_url_token = "abc"
+tiny_url_alias = ""
 ip_count = 10
-speed_limit = 3
+speed_limit = 10
 cloudflare_st_path = "CloudflareST/"

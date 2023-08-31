@@ -54,7 +54,8 @@ function main(array$opts)
     try {
 
         if ($to_send_vmess_msg) {
-            $msg = $obj->get_msg_vmess($config["db_file"], $config['tiny_url_token']);
+            $tpl_arr = json_decode($config["vmess_tpl"], true);
+            $msg = $obj->get_msg_vmess($tpl_arr, $config["db_file"], $config['tiny_url_token'], $config['tiny_url_alias']);
             if (!$obj->send_message($config['telegram_token'], $config['telegram_chat_id'], $msg)) {
                 throw new Exception("send failed.");
             }
