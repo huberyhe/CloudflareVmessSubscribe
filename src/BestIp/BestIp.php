@@ -16,6 +16,7 @@ class BestIp
     private $transfer_url = ''; // transfer短链接url
     private $transfer_delete_url = ''; // transfer删除url
 
+    const SPEED_TEST_FILE = "https://sangfor.0x01.party/file";
     const TRANSFER_URL_BASE = "https://transfer.sh/";
     const TINY_URL_BASE = "https://tinyurl.com/";
     const TINY_URL_ALIAS = "hubery-iJDPSpRViy";
@@ -53,7 +54,7 @@ class BestIp
     {
         echo '>>> 优选IP'. PHP_EOL;
         if ($slient_mode) {
-            $cmd = Sprintf('cd %s && ./CloudflareST -tl 300 -sl %d -dn %d -p %d -url https://sangfor.0x01.party/file -s -o %s', $bin_dir, $sl, $this->ip_count, $this->ip_count, $this->ip_result_file);
+            $cmd = Sprintf('cd %s && ./CloudflareST -tl 300 -sl %d -dn %d -p %d -url https://sangfor.0x01.party/file -o %s 2>/dev/null', $bin_dir, $sl, $this->ip_count, $this->ip_count, $this->ip_result_file);
         } else {
             $cmd = Sprintf('cd %s && ./CloudflareST -tl 300 -sl %d -dn %d -p %d -url https://sangfor.0x01.party/file -o %s', $bin_dir, $sl, $this->ip_count, $this->ip_count, $this->ip_result_file);
         }
@@ -129,7 +130,7 @@ class BestIp
     // 发送telegram通知消息
     public function send_message(string $token, string $chat_id, string $msg): bool
     {
-        echo '>>> 发送消息：'. $this->transfer_url. PHP_EOL;
+        echo '>>> 发送消息：'. $msg. PHP_EOL;
         $url = sprintf('https://api.telegram.org/bot%s/sendMessage?%s', $token, http_build_query(array(
             'chat_id' => $chat_id,
             'text' => $msg,
